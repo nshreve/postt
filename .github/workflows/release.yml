@@ -25,7 +25,10 @@ jobs:
         run: npm run build
 
       - name: Package dist
-        run: tar czf postt-dist.tar.gz dist/
+        run: |
+          mkdir postt-release
+          cp -r dist postt-release/
+          tar czf postt-dist.tar.gz postt-release/
 
       - name: Compute SHA256
         id: sha
