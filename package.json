@@ -1,6 +1,6 @@
 {
   "name": "postt",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A delightful CLI for creating and publishing blogs",
   "type": "module",
   "scripts": {
