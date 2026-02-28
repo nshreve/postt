@@ -100,7 +100,7 @@ export async function deployBlog(
 
 export async function updateBlog(
   blogId: string,
-  updates: { title?: string; customDomain?: string }
+  updates: { title?: string; subdomain?: string; customDomain?: string }
 ): Promise<BlogInfo> {
   const response = await authFetch(`/blogs/${blogId}`, {
     method: 'PATCH',
@@ -113,6 +113,17 @@ export async function updateBlog(
   }
 
   return response.json() as Promise<BlogInfo>;
+}
+
+export async function deleteBlog(blogId: string): Promise<void> {
+  const response = await authFetch(`/blogs/${blogId}`, {
+    method: 'DELETE',
+  });
+
+  if (!response.ok) {
+    const error = await response.json() as { message?: string; error?: string };
+    throw new Error(error.message || error.error || 'Failed to delete blog');
+  }
 }
 
 export async function publishPostAndDeploy(post: Post, content: string): Promise<string | null> {

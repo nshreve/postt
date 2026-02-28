@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import type { Env, Variables } from '../types.js';
 import { createSupabaseClient } from '../lib/supabase.js';
-import { deployToCloudflarePages } from '../lib/deploy.js';
+import { deployToCloudflarePages, deleteBlogContent } from '../lib/deploy.js';
 
 const blogs = new Hono<{ Bindings: Env; Variables: Variables }>();
 
@@ -117,7 +117,7 @@ blogs.patch('/:id', async (c) => {
   }
 
   const blogId = c.req.param('id');
-  const updates = await c.req.json<{ title?: string; customDomain?: string }>();
+  const updates = await c.req.json<{ title?: string; subdomain?: string; customDomain?: string }>();
 
   const supabase = createSupabaseClient(c.env);
 
@@ -130,8 +130,19 @@ blogs.patch('/:id', async (c) => {
     return c.json({ error: 'Forbidden' }, 403);
   }
 
+  if (updates.subdomain && updates.subdomain !== blog.subdomain) {
+    if (!/^[a-z0-9-]{3,30}$/.test(updates.subdomain)) {
+      return c.json({ error: 'Invalid subdomain format' }, 400);
+    }
+    const existing = await supabase.getBlogBySubdomain(updates.subdomain);
+    if (existing) {
+      return c.json({ error: 'Subdomain already taken' }, 400);
+    }
+  }
+
   const updatedBlog = await supabase.updateBlog(blogId, {
     title: updates.title,
+    subdomain: updates.subdomain,
     custom_domain: updates.customDomain,
   });
 
@@ -217,6 +228,39 @@ blogs.post('/:id/deploy', async (c) => {
     url,
     deployedAt: new Date().toISOString(),
   });
+});
+
+// Delete blog
+blogs.delete('/:id', async (c) => {
+  const user = c.get('user');
+  if (!user) {
+    return c.json({ error: 'Unauthorized' }, 401);
+  }
+
+  const blogId = c.req.param('id');
+  const supabase = createSupabaseClient(c.env);
+
+  const blog = await supabase.getBlogById(blogId);
+  if (!blog) {
+    return c.json({ error: 'Blog not found' }, 404);
+  }
+
+  if (blog.user_id !== user.id) {
+    return c.json({ error: 'Forbidden' }, 403);
+  }
+
+  try {
+    // Clean up KV content first
+    await deleteBlogContent(blog.subdomain, c.env);
+
+    // Delete from database (posts + blog)
+    await supabase.deleteBlog(blogId);
+
+    return c.json({ success: true });
+  } catch (err) {
+    console.error('Error deleting blog:', err);
+    return c.json({ error: 'Failed to delete blog' }, 500);
+  }
 });
 
 export { blogs };

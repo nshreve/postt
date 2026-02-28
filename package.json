@@ -3,20 +3,12 @@
   "version": "0.1.0",
   "description": "A delightful CLI for creating and publishing blogs",
   "type": "module",
-  "main": "dist/index.js",
-  "bin": {
-    "postt": "dist/index.js"
-  },
-  "files": [
-    "dist"
-  ],
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts",
     "dev": "tsup src/index.ts --format esm --watch",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
-    "test": "vitest",
-    "prepublishOnly": "npm run typecheck && npm run build"
+    "test": "vitest"
   },
   "author": "Noah Shreve",
   "repository": {

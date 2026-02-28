@@ -191,5 +191,36 @@ export function createSupabaseClient(env: Env) {
         throw new Error(`Failed to delete post: ${error}`);
       }
     },
+
+    async deleteBlog(id: string): Promise<void> {
+      // Delete all posts first (in case there's no cascade)
+      const postsUrl = `${supabaseUrl}/rest/v1/posts?blog_id=eq.${id}`;
+      const postsResponse = await fetch(postsUrl, {
+        method: 'DELETE',
+        headers: {
+          apikey: supabaseKey,
+          Authorization: `Bearer ${supabaseKey}`,
+        },
+      });
+      if (!postsResponse.ok) {
+        const error = await postsResponse.text();
+        console.error(`[Supabase] Delete blog posts error: ${error}`);
+        throw new Error(`Failed to delete blog posts: ${error}`);
+      }
+
+      const blogUrl = `${supabaseUrl}/rest/v1/blogs?id=eq.${id}`;
+      const blogResponse = await fetch(blogUrl, {
+        method: 'DELETE',
+        headers: {
+          apikey: supabaseKey,
+          Authorization: `Bearer ${supabaseKey}`,
+        },
+      });
+      if (!blogResponse.ok) {
+        const error = await blogResponse.text();
+        console.error(`[Supabase] Delete blog error: ${error}`);
+        throw new Error(`Failed to delete blog: ${error}`);
+      }
+    },
   };
 }

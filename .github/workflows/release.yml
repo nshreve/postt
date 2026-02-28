@@ -1,0 +1,79 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Package dist
+        run: tar czf postt-dist.tar.gz dist/
+
+      - name: Compute SHA256
+        id: sha
+        run: echo "sha256=$(sha256sum postt-dist.tar.gz | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: postt-dist.tar.gz
+
+      - name: Update Homebrew tap
+        env:
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          SHA256="${{ steps.sha.outputs.sha256 }}"
+
+          git clone "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/noahshreve/homebrew-postt.git" tap
+          cd tap
+
+          cat > Formula/postt.rb <<FORMULA
+          class Postt < Formula
+            desc "A delightful CLI for creating and publishing blogs"
+            homepage "https://github.com/noahshreve/postt"
+            url "https://github.com/noahshreve/postt/releases/download/v${VERSION}/postt-dist.tar.gz"
+            sha256 "${SHA256}"
+            version "${VERSION}"
+            license "MIT"
+
+            depends_on "node"
+
+            def install
+              libexec.install "dist"
+              (bin/"postt").write <<~EOS
+                #!/bin/bash
+                exec "#{Formula["node"].opt_bin}/node" "#{libexec}/dist/index.js" "\$@"
+              EOS
+              chmod 0755, bin/"postt"
+            end
+
+            test do
+              assert_match version.to_s, shell_output("#{bin}/postt --version")
+            end
+          end
+          FORMULA
+
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add Formula/postt.rb
+          git commit -m "postt ${VERSION}"
+          git push

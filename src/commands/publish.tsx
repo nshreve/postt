@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { render, Box, Text, useApp, useInput } from 'ink';
 import { Spinner } from '../components/Spinner.js';
 import { getAllPosts, savePost, needsPublishing } from '../lib/posts.js';
-import { blogExists, syncBlogConfig } from '../lib/config.js';
+import { blogExists, syncBlogConfig, saveBlogConfig } from '../lib/config.js';
 import { deployBlog } from '../lib/api.js';
-import type { Post } from '../types/index.js';
+import type { Post, BlogConfig } from '../types/index.js';
 
 type Status = 'checking' | 'select' | 'deploying' | 'done' | 'error' | 'nothing';
 
@@ -15,9 +15,11 @@ function PublishCommand() {
   const [url, setUrl] = useState('');
   const [deployTime, setDeployTime] = useState(0);
   const [posts, setPosts] = useState<Post[]>([]);
+  const [deletedSlugs, setDeletedSlugs] = useState<string[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [cursorIndex, setCursorIndex] = useState(0);
   const [publishedCount, setPublishedCount] = useState(0);
+  const [config, setConfig] = useState<BlogConfig | null>(null);
 
   useEffect(() => {
     const init = async () => {
@@ -27,23 +29,32 @@ function PublishCommand() {
         return;
       }
 
-      const config = await syncBlogConfig();
-      if (!config) {
+      const cfg = await syncBlogConfig();
+      if (!cfg) {
         setError('Could not read blog config');
         setStatus('error');
         return;
       }
 
-      setUrl(config.url);
+      setUrl(cfg.url);
+      setConfig(cfg);
 
       const allPosts = await getAllPosts();
       const postsToPublish = allPosts.filter(needsPublishing);
 
-      if (postsToPublish.length === 0) {
+      // Compute deleted slugs: slugs that were deployed but are no longer local
+      const localPublishedSlugs = new Set(
+        allPosts.filter((p) => p.status === 'published').map((p) => p.slug)
+      );
+      const deployedSlugSet = new Set(cfg.deployedSlugs || []);
+      const removed = [...deployedSlugSet].filter((s) => !localPublishedSlugs.has(s));
+
+      if (postsToPublish.length === 0 && removed.length === 0) {
         setStatus('nothing');
         return;
       }
 
+      setDeletedSlugs(removed);
       setPosts(postsToPublish);
       setStatus('select');
     };
@@ -52,7 +63,7 @@ function PublishCommand() {
   }, []);
 
   const handlePublish = async () => {
-    if (selected.size === 0) {
+    if (selected.size === 0 && deletedSlugs.length === 0) {
       setStatus('nothing');
       return;
     }
@@ -61,14 +72,13 @@ function PublishCommand() {
     setStatus('deploying');
 
     try {
-      const config = await syncBlogConfig();
-      if (!config) throw new Error('Could not read blog config');
+      const cfg = config || (await syncBlogConfig());
+      if (!cfg) throw new Error('Could not read blog config');
 
       // Get all posts and update selected ones
       const allPosts = await getAllPosts();
       const now = new Date().toISOString();
 
-      // Update selected posts to published with timestamp
       for (const post of allPosts) {
         if (selected.has(post.slug)) {
           post.status = 'published';
@@ -77,8 +87,11 @@ function PublishCommand() {
         }
       }
 
-      // Deploy all published posts
-      const publishedPosts = allPosts
+      // Re-read posts after saves
+      const freshPosts = await getAllPosts();
+
+      // Deploy all published posts (deleted slugs are excluded by filtering published)
+      const publishedPosts = freshPosts
         .filter((p) => p.status === 'published')
         .map((p) => ({
           slug: p.slug,
@@ -88,7 +101,11 @@ function PublishCommand() {
           status: 'published' as const,
         }));
 
-      await deployBlog(config.id, publishedPosts);
+      await deployBlog(cfg.id, publishedPosts);
+
+      // Persist deployed slugs
+      const newDeployedSlugs = publishedPosts.map((p) => p.slug);
+      await saveBlogConfig({ ...cfg, deployedSlugs: newDeployedSlugs });
 
       setPublishedCount(selected.size);
       setDeployTime((Date.now() - startTime) / 1000);
@@ -107,7 +124,6 @@ function PublishCommand() {
     } else if (key.downArrow) {
       setCursorIndex((prev) => Math.min(posts.length - 1, prev + 1));
     } else if (input === ' ') {
-      // Toggle selection
       const post = posts[cursorIndex];
       if (post) {
         setSelected((prev) => {
@@ -133,6 +149,8 @@ function PublishCommand() {
       return () => clearTimeout(timer);
     }
   }, [status, exit]);
+
+  const totalCount = selected.size + deletedSlugs.length;
 
   return (
     <Box flexDirection="column" padding={1}>
@@ -166,22 +184,38 @@ function PublishCommand() {
               </Box>
             );
           })}
+          {deletedSlugs.length > 0 && (
+            <>
+              <Text> </Text>
+              {deletedSlugs.map((slug) => (
+                <Box key={slug}>
+                  <Text color="gray">
+                    {'  '}✕ {slug}
+                    <Text color="red"> (will be removed)</Text>
+                  </Text>
+                </Box>
+              ))}
+            </>
+          )}
           <Text> </Text>
           <Text color="gray">
-            Space to toggle • Enter to publish {selected.size > 0 ? `(${selected.size})` : ''} • q to cancel
+            Space to toggle • Enter to publish {totalCount > 0 ? `(${totalCount})` : ''} • q to cancel
           </Text>
         </Box>
       )}
 
       {status === 'deploying' && (
         <Box flexDirection="column">
-          <Spinner text={`Publishing ${selected.size} post${selected.size === 1 ? '' : 's'}...`} />
+          <Spinner text={`Publishing...`} />
         </Box>
       )}
 
       {status === 'done' && (
         <Box flexDirection="column">
-          <Text color="green">✓ Published {publishedCount} post{publishedCount === 1 ? '' : 's'} in {deployTime.toFixed(1)}s</Text>
+          <Text color="green">
+            ✓ Published {publishedCount} post{publishedCount === 1 ? '' : 's'}
+            {deletedSlugs.length > 0 ? `, removed ${deletedSlugs.length}` : ''} in {deployTime.toFixed(1)}s
+          </Text>
           <Text> </Text>
           <Text>
             🔗 <Text color="cyan" bold>{url}</Text>

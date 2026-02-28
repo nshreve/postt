@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
+import pkg from '../package.json' assert { type: 'json' };
 import { runInit } from './commands/init.js';
 import { runLogin } from './commands/login.js';
 import { runLogout } from './commands/logout.js';
@@ -9,13 +10,15 @@ import { runEdit } from './commands/edit.js';
 import { runList } from './commands/list.js';
 import { runPublish } from './commands/publish.js';
 import { runStatus } from './commands/status.js';
+import { runDelete } from './commands/delete.js';
+import { runSettings } from './commands/settings.js';
 
 const program = new Command();
 
 program
   .name('postt')
   .description('A delightful CLI for creating and publishing blogs')
-  .version('0.1.0');
+  .version(pkg.version);
 
 program
   .command('init')
@@ -64,5 +67,17 @@ program
   .command('status')
   .description('Show blog info and status')
   .action(runStatus);
+
+program
+  .command('delete [post]')
+  .description('Delete a post')
+  .action((post: string | undefined) => {
+    runDelete(post);
+  });
+
+program
+  .command('settings')
+  .description('Manage blog settings')
+  .action(runSettings);
 
 program.parse();

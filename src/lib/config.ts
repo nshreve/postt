@@ -118,6 +118,21 @@ export async function syncBlogConfig(dir = process.cwd()): Promise<BlogConfig | 
   }
 }
 
+export async function clearBlogConfig(dir = process.cwd()): Promise<void> {
+  // Remove from global config
+  const blogs = globalConfig.get('blogs') || {};
+  delete blogs[dir];
+  globalConfig.set('blogs', blogs);
+
+  // Delete the .postt file
+  const idFilePath = path.join(dir, BLOG_ID_FILE);
+  try {
+    await fs.unlink(idFilePath);
+  } catch {
+    // File may not exist
+  }
+}
+
 export async function initBlogDirectory(dir = process.cwd()): Promise<void> {
   const postsDir = path.join(dir, POSTS_DIR);
   const publicDir = path.join(dir, 'public', 'images');

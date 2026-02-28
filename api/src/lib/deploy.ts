@@ -42,6 +42,17 @@ export async function deployToCloudflarePages(
   return { url: `https://${subdomain}.postt.io` };
 }
 
+export async function deleteBlogContent(subdomain: string, env: Env): Promise<void> {
+  // Delete all KV keys under this subdomain
+  const existingKeys = await env.BLOG_CONTENT.list({ prefix: `blog:${subdomain}:/` });
+  for (const key of existingKeys.keys) {
+    await env.BLOG_CONTENT.delete(key.name);
+  }
+
+  // Delete blog metadata
+  await env.BLOG_CONTENT.delete(`meta:${subdomain}`);
+}
+
 export async function addCustomDomain(
   subdomain: string,
   customDomain: string,

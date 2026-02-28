@@ -4,6 +4,7 @@ export interface BlogConfig {
   subdomain: string;
   url: string;
   createdAt: string;
+  deployedSlugs?: string[];
 }
 
 export interface PostFrontmatter {
