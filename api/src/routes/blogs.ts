@@ -13,12 +13,10 @@ blogs.get('/check-subdomain', async (c) => {
     return c.json({ error: 'Missing subdomain' }, 400);
   }
 
-  // Validate subdomain format
   if (!/^[a-z0-9-]{3,30}$/.test(subdomain)) {
     return c.json({ available: false, reason: 'Invalid subdomain format' });
   }
 
-  // Check reserved subdomains
   const reserved = ['www', 'api', 'app', 'admin', 'blog', 'help', 'support', 'mail'];
   if (reserved.includes(subdomain)) {
     return c.json({ available: false, reason: 'Reserved subdomain' });
@@ -34,42 +32,33 @@ blogs.get('/check-subdomain', async (c) => {
 blogs.post('/', async (c) => {
   try {
     const user = c.get('user');
-    console.log('[blogs] POST / - user:', user);
     if (!user) {
-      return c.json({ error: 'Unauthorized', message: 'No user in context' }, 401);
+      return c.json({ error: 'Unauthorized' }, 401);
     }
 
-    const body = await c.req.json<{ title: string; subdomain: string }>();
-    console.log('[blogs] POST / - body:', body);
-    const { title, subdomain } = body;
+    const { title, subdomain } = await c.req.json<{ title: string; subdomain: string }>();
 
     if (!title || !subdomain) {
-      return c.json({ error: 'Missing title or subdomain', message: `title=${title}, subdomain=${subdomain}` }, 400);
+      return c.json({ error: 'Missing title or subdomain' }, 400);
     }
 
-    // Validate subdomain
     if (!/^[a-z0-9-]{3,30}$/.test(subdomain)) {
-      return c.json({ error: 'Invalid subdomain format', message: subdomain }, 400);
+      return c.json({ error: 'Invalid subdomain format' }, 400);
     }
 
     const supabase = createSupabaseClient(c.env);
 
-    // Check availability
-    console.log('[blogs] Checking subdomain availability:', subdomain);
     const existing = await supabase.getBlogBySubdomain(subdomain);
     if (existing) {
-      return c.json({ error: 'Subdomain already taken', message: subdomain }, 400);
+      return c.json({ error: 'Subdomain already taken' }, 400);
     }
 
-    // Create blog
-    console.log('[blogs] Creating blog for user:', user.id);
     const blog = await supabase.createBlog({
       user_id: user.id,
       title,
       subdomain,
       custom_domain: null,
     });
-    console.log('[blogs] Blog created:', blog);
 
     const url = `https://${subdomain}.postt.io`;
 
@@ -81,8 +70,8 @@ blogs.post('/', async (c) => {
       createdAt: blog.created_at,
     });
   } catch (err) {
-    console.error('[blogs] Error creating blog:', err);
-    return c.json({ error: 'Failed to create blog', message: String(err) }, 500);
+    console.error('Error creating blog:', err);
+    return c.json({ error: 'Failed to create blog' }, 500);
   }
 });
 
@@ -190,7 +179,7 @@ blogs.post('/:id/deploy', async (c) => {
     return c.json({ error: 'Forbidden' }, 403);
   }
 
-  // Save post metadata to database
+  // Upsert incoming posts to database
   for (const post of posts) {
     await supabase.upsertPost({
       blog_id: blogId,
@@ -201,14 +190,22 @@ blogs.post('/:id/deploy', async (c) => {
     });
   }
 
-  // Deploy to Cloudflare Pages
-  const result = await deployToCloudflarePages(
+  // Delete posts from database that are no longer in the published set
+  const existingPosts = await supabase.getPostsByBlogId(blogId);
+  const incomingSlugSet = new Set(posts.map((p) => p.slug));
+  for (const existing of existingPosts) {
+    if (!incomingSlugSet.has(existing.slug)) {
+      await supabase.deletePost(blogId, existing.slug);
+    }
+  }
+
+  // Deploy to KV (also cleans up removed posts)
+  await deployToCloudflarePages(
     { title: blog.title, subdomain: blog.subdomain },
     posts,
     c.env
   );
 
-  // Update blog timestamp
   await supabase.updateBlog(blogId, {});
 
   const url = blog.custom_domain

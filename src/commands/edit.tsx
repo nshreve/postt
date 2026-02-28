@@ -3,8 +3,8 @@ import { render, Box, Text, useApp, useInput } from 'ink';
 import { Editor } from '../components/Editor.js';
 import { PostList } from '../components/PostList.js';
 import { getPost, getAllPosts, savePost } from '../lib/posts.js';
-import { blogExists, syncBlogConfig } from '../lib/config.js';
-import { deployBlog } from '../lib/api.js';
+import { blogExists } from '../lib/config.js';
+import { publishPostAndDeploy } from '../lib/api.js';
 import type { Post } from '../types/index.js';
 
 type Step = 'check' | 'select' | 'editor' | 'done' | 'error';
@@ -92,29 +92,11 @@ function EditCommand({ postSlug, useExternalEditor }: EditCommandProps) {
   };
 
   const handlePublish = async (content: string) => {
-    if (post) {
-      post.content = content;
-      post.status = 'published';
-      post.publishedAt = new Date().toISOString();
-      await savePost(post);
-
-      const config = await syncBlogConfig();
-      if (config) {
-        const allPosts = await getAllPosts();
-        const publishedPosts = allPosts
-          .filter((p) => p.status === 'published')
-          .map((p) => ({
-            slug: p.slug,
-            title: p.title,
-            content: p.content,
-            date: p.date,
-            status: p.status,
-          }));
-
-        await deployBlog(config.id, publishedPosts);
-        setBlogUrl(config.url);
-        setPublished(true);
-      }
+    if (!post) return;
+    const url = await publishPostAndDeploy(post, content);
+    if (url) {
+      setBlogUrl(url);
+      setPublished(true);
     }
   };
 

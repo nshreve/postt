@@ -1,68 +1,52 @@
-# CLI Blog
+# postt
 
-A delightful CLI for creating and publishing blogs with a beautiful terminal experience.
-
-## Features
-
-- In-terminal Markdown editor with syntax highlighting
-- GitHub authentication
-- Fast deploys to Cloudflare Pages (~5-10 seconds)
-- Free subdomain hosting (`yourname.cliblog.com`)
-- Draft and published post states
+A delightful CLI for creating and publishing blogs straight from your terminal.
 
 ## Installation
 
 ```bash
-npm install -g @cliblog/cli
+npm install -g postt
 ```
 
 ## Quick Start
 
 ```bash
-# Initialize a new blog
-blog init
+# Create a new blog
+postt init
 
-# Create a new post
-blog new "My First Post"
+# Write your first post
+postt new "My First Post"
 
-# List all posts
-blog list
-
-# Publish your blog
-blog publish
+# Publish to the web
+postt publish
 ```
 
 ## Commands
 
 | Command | Description |
 |---------|-------------|
-| `blog init` | Initialize a new blog in the current directory |
-| `blog login` | Authenticate with GitHub |
-| `blog new [title]` | Create a new post |
-| `blog edit [post]` | Edit an existing post |
-| `blog list` | List all posts |
-| `blog publish` | Deploy your blog |
-| `blog status` | Show blog info and URL |
+| `postt init` | Set up a new blog in the current directory |
+| `postt login` | Sign in with your email |
+| `postt logout` | Sign out |
+| `postt new [title]` | Create a new post |
+| `postt edit [post]` | Edit an existing post |
+| `postt list` | List all your posts |
+| `postt publish` | Deploy your blog to the web |
+| `postt status` | Show blog info and URL |
 
 ### Options
 
-- `blog new -e` / `blog edit -e` - Use external `$EDITOR` instead of built-in editor
+- `postt new -e` / `postt edit -e` — Use your `$EDITOR` instead of the built-in editor
 
-## Project Structure
+## How It Works
 
-```
-my-blog/
-├── blog.json          # Blog configuration
-├── posts/             # Your blog posts
-│   ├── hello-world.md
-│   └── another-post.md
-└── public/            # Static assets
-    └── images/
-```
+Run `postt init` to set up a new blog. You'll pick a name and get a `yourname.postt.io` subdomain. Authentication is passwordless — just enter your email and click the link.
+
+Your posts live as plain Markdown files in a local `posts/` directory. Write with `postt new`, edit with `postt edit`, and deploy with `postt publish`. Deleting a local post file and re-running `postt publish` removes it from your live blog too.
 
 ## Post Format
 
-Posts use Markdown with YAML frontmatter:
+Posts are Markdown files with YAML frontmatter:
 
 ```markdown
 ---
@@ -74,23 +58,25 @@ status: published
 Your content here...
 ```
 
+## Project Structure
+
+```
+my-blog/
+├── .postt          # Blog ID (commit this for cross-machine sync)
+└── posts/          # Your Markdown posts
+    ├── hello-world.md
+    └── another-post.md
+```
+
 ## Development
 
 ```bash
-# Install dependencies
 npm install
-
-# Build CLI
 npm run build
-
-# Run locally
-npm start
-
-# Watch mode
-npm run dev
+npm run dev        # Watch mode
 ```
 
-### API Development
+### API (Cloudflare Worker)
 
 ```bash
 cd api
@@ -98,29 +84,31 @@ npm install
 npm run dev
 ```
 
-## Tech Stack
+### Blog serving worker
 
-- **CLI**: Node.js + TypeScript + Ink (React for CLI)
-- **Auth**: Supabase Auth (GitHub OAuth)
-- **Database**: Supabase (PostgreSQL)
-- **API**: Cloudflare Workers
-- **Hosting**: Cloudflare Pages
+```bash
+cd blogs-worker
+npm install
+npm run dev
+```
 
 ## Environment Variables
 
 ### CLI
-- `BLOG_API_URL` - API endpoint (default: `http://localhost:8787`)
+- `BLOG_API_URL` — Override the API endpoint (default: `https://postt-api.orangestudio.workers.dev`)
 
-### API (set in Cloudflare dashboard)
-- `SUPABASE_URL` - Supabase project URL
-- `SUPABASE_ANON_KEY` - Supabase anon key
-- `SUPABASE_SERVICE_KEY` - Supabase service role key
-- `GITHUB_CLIENT_ID` - GitHub OAuth app client ID
-- `GITHUB_CLIENT_SECRET` - GitHub OAuth app client secret
-- `JWT_SECRET` - Secret for JWT signing
-- `CF_API_TOKEN` - Cloudflare API token for Pages deployment
-- `CF_ACCOUNT_ID` - Cloudflare account ID
-- `APP_URL` - API URL for OAuth redirects
+### API worker (set via `wrangler secret put`)
+- `SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_KEY`
+- `JWT_SECRET`
+
+## Tech Stack
+
+- **CLI**: Node.js + TypeScript + [Ink](https://github.com/vadimdemedes/ink)
+- **Auth**: Supabase (magic link email)
+- **Database**: Supabase (PostgreSQL)
+- **API**: Cloudflare Workers + Hono
+- **Hosting**: Cloudflare KV
 
 ## License
 

@@ -8,16 +8,9 @@ import { Spinner } from '../components/Spinner.js';
 import { sendMagicLink, pollForAuth } from '../lib/auth.js';
 import { isAuthenticated, getUser, saveBlogConfig, initBlogDirectory, blogExists } from '../lib/config.js';
 import { createBlog, checkSubdomainAvailability } from '../lib/api.js';
+import { slugify } from '../lib/posts.js';
 
 type Step = 'welcome' | 'title' | 'directory' | 'email' | 'waiting' | 'subdomain' | 'creating' | 'done' | 'error';
-
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-    .slice(0, 50);
-}
 
 function InitCommand() {
   const { exit } = useApp();
@@ -54,7 +47,7 @@ function InitCommand() {
     if (value.trim()) {
       const title = value.trim();
       setBlogTitle(title);
-      setDirName(slugify(title));
+      setDirName(slugify(title).slice(0, 50));
       setStep('directory');
     }
   };

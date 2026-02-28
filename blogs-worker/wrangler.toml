@@ -2,9 +2,10 @@ name = "postt-blogs"
 main = "src/index.ts"
 compatibility_date = "2024-01-01"
 
+routes = [
+  { pattern = "*.postt.io/*", zone_name = "postt.io" }
+]
+
 [[kv_namespaces]]
 binding = "BLOG_CONTENT"
 id = "81ce67e367594c17bf09568303636151"
-
-# Route all *.postt.io traffic to this worker
-# Configure this in Cloudflare dashboard under Workers Routes

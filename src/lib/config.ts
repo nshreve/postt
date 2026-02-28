@@ -3,6 +3,8 @@ import path from 'path';
 import Conf from 'conf';
 import type { BlogConfig, AuthToken } from '../types/index.js';
 
+export const API_URL = process.env.BLOG_API_URL || 'https://postt-api.orangestudio.workers.dev';
+
 const POSTS_DIR = 'posts';
 const BLOG_ID_FILE = '.postt';
 
@@ -85,18 +87,9 @@ export async function saveBlogConfig(config: BlogConfig, dir = process.cwd()): P
   await fs.writeFile(idFilePath, config.id);
 }
 
-export async function getBlogId(dir = process.cwd()): Promise<string | null> {
-  const idFilePath = path.join(dir, BLOG_ID_FILE);
-  try {
-    return (await fs.readFile(idFilePath, 'utf-8')).trim();
-  } catch {
-    return null;
-  }
-}
-
 export function needsSync(config: BlogConfig | null): boolean {
   // If we have a blog ID but no title, it's a partial config from .postt file
-  return config !== null && config.id && !config.title;
+  return config !== null && !!config.id && !config.title;
 }
 
 export async function syncBlogConfig(dir = process.cwd()): Promise<BlogConfig | null> {

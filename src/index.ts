@@ -20,23 +20,17 @@ program
 program
   .command('init')
   .description('Initialize a new blog in the current directory')
-  .action(() => {
-    runInit();
-  });
+  .action(runInit);
 
 program
   .command('login')
   .description('Authenticate with your email')
-  .action(() => {
-    runLogin();
-  });
+  .action(runLogin);
 
 program
   .command('logout')
   .description('Log out of your account')
-  .action(() => {
-    runLogout();
-  });
+  .action(runLogout);
 
 program
   .command('new [title]')
@@ -58,23 +52,17 @@ program
   .command('list')
   .alias('ls')
   .description('List all posts')
-  .action(() => {
-    runList();
-  });
+  .action(runList);
 
 program
   .command('publish')
   .alias('deploy')
   .description('Publish your blog to the web')
-  .action(() => {
-    runPublish();
-  });
+  .action(runPublish);
 
 program
   .command('status')
   .description('Show blog info and status')
-  .action(() => {
-    runStatus();
-  });
+  .action(runStatus);
 
 program.parse();

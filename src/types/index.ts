@@ -11,7 +11,6 @@ export interface PostFrontmatter {
   date: string;
   status: 'draft' | 'published';
   publishedAt?: string;
-  slug?: string;
 }
 
 export interface Post {
@@ -29,8 +28,6 @@ export interface User {
   id: string;
   username: string;
   email: string;
-  githubId: string;
-  plan: 'free' | 'pro';
 }
 
 export interface AuthToken {

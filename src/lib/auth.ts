@@ -1,7 +1,5 @@
 import crypto from 'crypto';
-import { setAuthToken, setUser, getAuthToken, clearAuthToken } from './config.js';
-
-const API_URL = process.env.BLOG_API_URL || 'https://postt-api.orangestudio.workers.dev';
+import { setAuthToken, setUser, getAuthToken, clearAuthToken, API_URL } from './config.js';
 
 interface AuthResult {
   success: boolean;

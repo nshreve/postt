@@ -117,7 +117,7 @@ export function draftPost(
     title,
     date,
     status: 'draft',
-    content: content || '',
+    content,
     filepath: path.join(getPostsDirectory(dir), `${slug}.md`),
   };
 }

@@ -94,7 +94,6 @@ export function createSupabaseClient(env: Env) {
       headers['Prefer'] = 'resolution=merge-duplicates,return=representation';
     }
 
-    console.log(`[Supabase] ${method} ${url}`);
     const response = await fetch(url, { method, headers, body });
 
     if (!response.ok) {
@@ -102,11 +101,10 @@ export function createSupabaseClient(env: Env) {
 
       // PGRST116 means 0 rows found with single: true - return null instead of throwing
       if (options.single && error.includes('PGRST116')) {
-        console.log(`[Supabase] No rows found (single query)`);
         return null;
       }
 
-      console.error(`[Supabase] Error: ${error}`);
+      console.error(`[Supabase] ${method} ${table} error: ${error}`);
       throw new Error(`Supabase error: ${error}`);
     }
 
@@ -114,35 +112,10 @@ export function createSupabaseClient(env: Env) {
       return null;
     }
 
-    const result = await response.json() as T;
-    console.log(`[Supabase] Result:`, JSON.stringify(result).slice(0, 200));
-    return result;
+    return response.json() as Promise<T>;
   }
 
   return {
-    async getUserByGithubId(githubId: string): Promise<SupabaseUser | null> {
-      return query<SupabaseUser>('users', {
-        select: '*',
-        filter: { github_id: githubId },
-        single: true,
-      });
-    },
-
-    async createUser(user: Omit<SupabaseUser, 'id' | 'created_at'>): Promise<SupabaseUser> {
-      const result = await query<SupabaseUser[]>('users', {
-        insert: user,
-      });
-      return result![0];
-    },
-
-    async upsertUser(user: Omit<SupabaseUser, 'id' | 'created_at'>): Promise<SupabaseUser> {
-      const result = await query<SupabaseUser[]>('users', {
-        upsert: user,
-        onConflict: 'github_id',
-      });
-      return result![0];
-    },
-
     async upsertUserByEmail(user: { email: string; plan: 'free' | 'pro' }): Promise<SupabaseUser> {
       const result = await query<SupabaseUser[]>('users', {
         upsert: {
@@ -170,14 +143,6 @@ export function createSupabaseClient(env: Env) {
         filter: { id },
         single: true,
       });
-    },
-
-    async getBlogsByUserId(userId: string): Promise<SupabaseBlog[]> {
-      const result = await query<SupabaseBlog[]>('blogs', {
-        select: '*',
-        filter: { user_id: userId },
-      });
-      return result || [];
     },
 
     async createBlog(blog: Omit<SupabaseBlog, 'id' | 'created_at' | 'updated_at'>): Promise<SupabaseBlog> {
@@ -209,6 +174,22 @@ export function createSupabaseClient(env: Env) {
         filter: { blog_id: blogId },
       });
       return result || [];
+    },
+
+    async deletePost(blogId: string, slug: string): Promise<void> {
+      const url = `${supabaseUrl}/rest/v1/posts?blog_id=eq.${blogId}&slug=eq.${encodeURIComponent(slug)}`;
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: {
+          apikey: supabaseKey,
+          Authorization: `Bearer ${supabaseKey}`,
+        },
+      });
+      if (!response.ok) {
+        const error = await response.text();
+        console.error(`[Supabase] Delete post error: ${error}`);
+        throw new Error(`Failed to delete post: ${error}`);
+      }
     },
   };
 }

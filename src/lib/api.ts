@@ -1,7 +1,7 @@
-import { getAuthToken } from './config.js';
+import { getAuthToken, syncBlogConfig, API_URL } from './config.js';
 import { refreshTokenIfNeeded } from './auth.js';
-
-const API_URL = process.env.BLOG_API_URL || 'https://postt-api.orangestudio.workers.dev';
+import { savePost, getAllPosts } from './posts.js';
+import type { Post } from '../types/index.js';
 
 interface CreateBlogResponse {
   id: string;
@@ -113,4 +113,28 @@ export async function updateBlog(
   }
 
   return response.json() as Promise<BlogInfo>;
+}
+
+export async function publishPostAndDeploy(post: Post, content: string): Promise<string | null> {
+  post.content = content;
+  post.status = 'published';
+  post.publishedAt = new Date().toISOString();
+  await savePost(post);
+
+  const config = await syncBlogConfig();
+  if (!config) return null;
+
+  const allPosts = await getAllPosts();
+  const publishedPosts = allPosts
+    .filter((p) => p.status === 'published')
+    .map((p) => ({
+      slug: p.slug,
+      title: p.title,
+      content: p.content,
+      date: p.date,
+      status: p.status,
+    }));
+
+  await deployBlog(config.id, publishedPosts);
+  return config.url;
 }

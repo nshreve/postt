@@ -3,9 +3,8 @@ import { render, Box, Text, useApp } from 'ink';
 import TextInput from 'ink-text-input';
 import { Editor } from '../components/Editor.js';
 import { draftPost, savePost } from '../lib/posts.js';
-import { blogExists, syncBlogConfig } from '../lib/config.js';
-import { deployBlog } from '../lib/api.js';
-import { getAllPosts } from '../lib/posts.js';
+import { blogExists } from '../lib/config.js';
+import { publishPostAndDeploy } from '../lib/api.js';
 import type { Post } from '../types/index.js';
 
 type Step = 'check' | 'title' | 'editor' | 'done' | 'error';
@@ -79,30 +78,11 @@ function NewCommand({ initialTitle, useExternalEditor }: NewCommandProps) {
   };
 
   const handlePublish = async (content: string) => {
-    if (post) {
-      post.content = content;
-      post.status = 'published';
-      post.publishedAt = new Date().toISOString();
-      await savePost(post);
-
-      // Trigger deployment
-      const config = await syncBlogConfig();
-      if (config) {
-        const allPosts = await getAllPosts();
-        const publishedPosts = allPosts
-          .filter((p) => p.status === 'published')
-          .map((p) => ({
-            slug: p.slug,
-            title: p.title,
-            content: p.content,
-            date: p.date,
-            status: p.status,
-          }));
-
-        await deployBlog(config.id, publishedPosts);
-        setBlogUrl(config.url);
-        setPublished(true);
-      }
+    if (!post) return;
+    const url = await publishPostAndDeploy(post, content);
+    if (url) {
+      setBlogUrl(url);
+      setPublished(true);
     }
   };
 

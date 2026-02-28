@@ -79,7 +79,7 @@ function PublishCommand() {
 
       // Deploy all published posts
       const publishedPosts = allPosts
-        .filter((p) => p.status === 'published' || selected.has(p.slug))
+        .filter((p) => p.status === 'published')
         .map((p) => ({
           slug: p.slug,
           title: p.title,
