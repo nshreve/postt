@@ -24,10 +24,14 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Install production dependencies
+        run: npm ci --omit=dev
+
       - name: Package dist
         run: |
           mkdir postt-release
           cp -r dist postt-release/
+          cp -r node_modules postt-release/
           tar czf postt-dist.tar.gz postt-release/
 
       - name: Compute SHA256
@@ -62,6 +66,7 @@ jobs:
 
             def install
               libexec.install "dist"
+              libexec.install "node_modules"
               (bin/"postt").write <<~EOS
                 #!/bin/bash
                 exec "#{Formula["node"].opt_bin}/node" "#{libexec}/dist/index.js" "\$@"
