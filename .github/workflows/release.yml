@@ -43,14 +43,14 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           SHA256="${{ steps.sha.outputs.sha256 }}"
 
-          git clone "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/noahshreve/homebrew-postt.git" tap
+          git clone "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/nshreve/homebrew-postt.git" tap
           cd tap
 
           cat > Formula/postt.rb <<FORMULA
           class Postt < Formula
             desc "A delightful CLI for creating and publishing blogs"
-            homepage "https://github.com/noahshreve/postt"
-            url "https://github.com/noahshreve/postt/releases/download/v${VERSION}/postt-dist.tar.gz"
+            homepage "https://github.com/nshreve/postt"
+            url "https://github.com/nshreve/postt/releases/download/v${VERSION}/postt-dist.tar.gz"
             sha256 "${SHA256}"
             version "${VERSION}"
             license "MIT"
