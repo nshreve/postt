@@ -1,0 +1,21 @@
+# Copy this to .dev.vars for local development
+
+# Supabase
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_KEY=your-service-key
+
+# GitHub OAuth
+# Create at: https://github.com/settings/developers
+GITHUB_CLIENT_ID=your-client-id
+GITHUB_CLIENT_SECRET=your-client-secret
+
+# JWT
+JWT_SECRET=generate-a-secure-random-string-here
+
+# Cloudflare Pages
+CF_API_TOKEN=your-api-token
+CF_ACCOUNT_ID=your-account-id
+
+# App URL (for OAuth callbacks)
+APP_URL=http://localhost:8787

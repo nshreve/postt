@@ -1,0 +1,29 @@
+node_modules/
+dist/
+.wrangler/
+.dev.vars
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Build
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Test
+coverage/
