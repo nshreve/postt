@@ -12,6 +12,10 @@ import { runPublish } from './commands/publish.js';
 import { runStatus } from './commands/status.js';
 import { runDelete } from './commands/delete.js';
 import { runSettings } from './commands/settings.js';
+import { runConnect } from './commands/connect.js';
+import { isAuthenticated } from './lib/config.js';
+
+const AUTH_EXEMPT = new Set(['login', 'init']);
 
 const program = new Command();
 
@@ -79,5 +83,17 @@ program
   .command('settings')
   .description('Manage blog settings')
   .action(runSettings);
+
+program
+  .command('connect [subdomain]')
+  .description('Connect this directory to an existing blog')
+  .action((subdomain?: string) => runConnect(subdomain));
+
+program.hook('preAction', (thisCommand, actionCommand) => {
+  if (!AUTH_EXEMPT.has(actionCommand.name()) && !isAuthenticated()) {
+    console.error('You are not logged in. Run `postt login` to get started.');
+    process.exit(1);
+  }
+});
 
 program.parse();

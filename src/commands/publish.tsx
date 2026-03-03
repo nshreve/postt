@@ -20,6 +20,7 @@ function PublishCommand() {
   const [cursorIndex, setCursorIndex] = useState(0);
   const [publishedCount, setPublishedCount] = useState(0);
   const [config, setConfig] = useState<BlogConfig | null>(null);
+  const [configChanged, setConfigChanged] = useState(false);
 
   useEffect(() => {
     const init = async () => {
@@ -42,20 +43,30 @@ function PublishCommand() {
       const allPosts = await getAllPosts();
       const postsToPublish = allPosts.filter(needsPublishing);
 
-      // Compute deleted slugs: slugs that were deployed but are no longer local
+      // Compute deleted slugs: slugs that were deployed but are no longer local.
+      // Fall back to current published slugs when deployedSlugs is uninitialized
+      // so that existing blogs can detect deletions correctly.
       const localPublishedSlugs = new Set(
         allPosts.filter((p) => p.status === 'published').map((p) => p.slug)
       );
-      const deployedSlugSet = new Set(cfg.deployedSlugs || []);
+      const deployedSlugSet = new Set(
+        cfg.deployedSlugs ?? [...localPublishedSlugs]
+      );
       const removed = [...deployedSlugSet].filter((s) => !localPublishedSlugs.has(s));
 
-      if (postsToPublish.length === 0 && removed.length === 0) {
+      // Detect blog config drift (title/subdomain changed since last deploy)
+      const configChanged =
+        (cfg.deployedTitle !== undefined && cfg.deployedTitle !== cfg.title) ||
+        (cfg.deployedSubdomain !== undefined && cfg.deployedSubdomain !== cfg.subdomain);
+
+      if (postsToPublish.length === 0 && removed.length === 0 && !configChanged) {
         setStatus('nothing');
         return;
       }
 
       setDeletedSlugs(removed);
       setPosts(postsToPublish);
+      setConfigChanged(configChanged);
       setStatus('select');
     };
 
@@ -63,7 +74,7 @@ function PublishCommand() {
   }, []);
 
   const handlePublish = async () => {
-    if (selected.size === 0 && deletedSlugs.length === 0) {
+    if (selected.size === 0 && deletedSlugs.length === 0 && !configChanged) {
       setStatus('nothing');
       return;
     }
@@ -103,9 +114,14 @@ function PublishCommand() {
 
       await deployBlog(cfg.id, publishedPosts);
 
-      // Persist deployed slugs
+      // Persist deployed state
       const newDeployedSlugs = publishedPosts.map((p) => p.slug);
-      await saveBlogConfig({ ...cfg, deployedSlugs: newDeployedSlugs });
+      await saveBlogConfig({
+        ...cfg,
+        deployedSlugs: newDeployedSlugs,
+        deployedTitle: cfg.title,
+        deployedSubdomain: cfg.subdomain,
+      });
 
       setPublishedCount(selected.size);
       setDeployTime((Date.now() - startTime) / 1000);
@@ -150,7 +166,7 @@ function PublishCommand() {
     }
   }, [status, exit]);
 
-  const totalCount = selected.size + deletedSlugs.length;
+  const totalCount = selected.size + deletedSlugs.length + (configChanged ? 1 : 0);
 
   return (
     <Box flexDirection="column" padding={1}>
@@ -195,6 +211,17 @@ function PublishCommand() {
                   </Text>
                 </Box>
               ))}
+            </>
+          )}
+          {configChanged && (
+            <>
+              <Text> </Text>
+              <Box>
+                <Text color="gray">
+                  {'  '}~ blog settings
+                  <Text color="cyan"> (title/subdomain updated)</Text>
+                </Text>
+              </Box>
             </>
           )}
           <Text> </Text>

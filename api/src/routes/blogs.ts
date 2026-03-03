@@ -75,6 +75,35 @@ blogs.post('/', async (c) => {
   }
 });
 
+// Get blog by subdomain (must be before /:id to avoid subdomain being treated as an ID)
+blogs.get('/by-subdomain', async (c) => {
+  const user = c.get('user');
+  if (!user) return c.json({ error: 'Unauthorized' }, 401);
+
+  const subdomain = c.req.query('subdomain');
+  if (!subdomain) return c.json({ error: 'Missing subdomain' }, 400);
+
+  const supabase = createSupabaseClient(c.env);
+  const blog = await supabase.getBlogBySubdomain(subdomain);
+
+  if (!blog) return c.json({ error: 'Blog not found' }, 404);
+  if (blog.user_id !== user.id) return c.json({ error: 'Forbidden' }, 403);
+
+  const url = blog.custom_domain
+    ? `https://${blog.custom_domain}`
+    : `https://${blog.subdomain}.postt.io`;
+
+  return c.json({
+    id: blog.id,
+    title: blog.title,
+    subdomain: blog.subdomain,
+    customDomain: blog.custom_domain,
+    url,
+    createdAt: blog.created_at,
+    updatedAt: blog.updated_at,
+  });
+});
+
 // Get blog by ID
 blogs.get('/:id', async (c) => {
   const user = c.get('user');
@@ -107,6 +136,31 @@ blogs.get('/:id', async (c) => {
     createdAt: blog.created_at,
     updatedAt: blog.updated_at,
   });
+});
+
+// Get posts for a blog
+blogs.get('/:id/posts', async (c) => {
+  const user = c.get('user');
+  if (!user) return c.json({ error: 'Unauthorized' }, 401);
+
+  const blogId = c.req.param('id');
+  const supabase = createSupabaseClient(c.env);
+
+  const blog = await supabase.getBlogById(blogId);
+  if (!blog) return c.json({ error: 'Blog not found' }, 404);
+  if (blog.user_id !== user.id) return c.json({ error: 'Forbidden' }, 403);
+
+  const dbPosts = await supabase.getPostsByBlogId(blogId);
+  const posts = dbPosts.map((p) => ({
+    slug: p.slug,
+    title: p.title,
+    content: '',
+    date: p.created_at.split('T')[0],
+    status: p.status,
+    publishedAt: p.published_at ?? undefined,
+  }));
+
+  return c.json({ posts });
 });
 
 // Update blog

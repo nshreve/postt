@@ -16,14 +16,11 @@ function LoginCommand() {
   const [dots, setDots] = useState('');
 
   useEffect(() => {
-    // Check if already logged in
     if (isAuthenticated()) {
       const user = getUser();
-      if (user) {
-        setUserEmail(user.email);
-        setStatus('done');
-        return;
-      }
+      if (user) setUserEmail(user.email);
+      setStatus('done');
+      return;
     }
     setStatus('input');
   }, []);
@@ -106,7 +103,9 @@ function LoginCommand() {
       )}
 
       {status === 'done' && (
-        <Text color="green">✓ Signed in as <Text bold>{userEmail}</Text></Text>
+        <Text color="green">
+          ✓ {userEmail ? <>Signed in as <Text bold>{userEmail}</Text></> : 'Already signed in'}
+        </Text>
       )}
 
       {status === 'error' && (

@@ -5,10 +5,21 @@ export interface BlogConfig {
   url: string;
   createdAt: string;
   deployedSlugs?: string[];
+  deployedTitle?: string;
+  deployedSubdomain?: string;
 }
 
 export interface PostFrontmatter {
   title: string;
+  date: string;
+  status: 'draft' | 'published';
+  publishedAt?: string;
+}
+
+export interface PostData {
+  slug: string;
+  title: string;
+  content: string;
   date: string;
   status: 'draft' | 'published';
   publishedAt?: string;

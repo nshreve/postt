@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(npx tsc:*)",
+      "Bash(git:*)",
+      "Bash(python3:*)",
+      "Bash(ls:*)"
     ]
   }
 }

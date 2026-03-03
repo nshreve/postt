@@ -1,7 +1,7 @@
 import { getAuthToken, syncBlogConfig, API_URL } from './config.js';
 import { refreshTokenIfNeeded } from './auth.js';
 import { savePost, getAllPosts } from './posts.js';
-import type { Post } from '../types/index.js';
+import type { Post, PostData } from '../types/index.js';
 
 interface CreateBlogResponse {
   id: string;
@@ -63,6 +63,25 @@ export async function createBlog(title: string, subdomain: string): Promise<Crea
   }
 
   return response.json() as Promise<CreateBlogResponse>;
+}
+
+export async function getBlogBySubdomain(subdomain: string): Promise<BlogInfo> {
+  const response = await authFetch(`/blogs/by-subdomain?subdomain=${encodeURIComponent(subdomain)}`);
+  if (!response.ok) {
+    const error = await response.json() as { message?: string; error?: string };
+    throw new Error(error.message || error.error || 'Blog not found or you don\'t have access.');
+  }
+  return response.json() as Promise<BlogInfo>;
+}
+
+export async function getBlogPosts(blogId: string): Promise<PostData[]> {
+  const response = await authFetch(`/blogs/${blogId}/posts`);
+  if (!response.ok) {
+    const error = await response.json() as { message?: string; error?: string };
+    throw new Error(error.message || error.error || 'Failed to fetch posts');
+  }
+  const data = await response.json() as { posts: PostData[] };
+  return data.posts;
 }
 
 export async function getBlog(blogId: string): Promise<BlogInfo> {
