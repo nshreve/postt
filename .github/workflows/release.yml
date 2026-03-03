@@ -6,82 +6,65 @@ on:
       - 'v*'
 
 jobs:
+  build:
+    name: Build ${{ matrix.artifact }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        include:
+          - target: bun-darwin-arm64
+            artifact: postt-macos-arm64
+            os: macos-latest
+          - target: bun-darwin-x64
+            artifact: postt-macos-x64
+            os: macos-latest
+          - target: bun-linux-x64
+            artifact: postt-linux-x64
+            os: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Stub react-devtools-core
+        run: |
+          mkdir -p node_modules/react-devtools-core
+          echo '{"name":"react-devtools-core","version":"0.0.0","main":"index.js","type":"module"}' > node_modules/react-devtools-core/package.json
+          echo 'export default {connectToDevTools(){}}' > node_modules/react-devtools-core/index.js
+
+      - name: Build binary
+        run: bun build --compile --target=${{ matrix.target }} src/index.ts --outfile ${{ matrix.artifact }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact }}
+
   release:
+    name: Create Release
+    needs: build
     runs-on: ubuntu-latest
     permissions:
       contents: write
 
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
         with:
-          node-version: 20
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build
-        run: npm run build
-
-      - name: Install production dependencies
-        run: npm ci --omit=dev
-
-      - name: Package dist
-        run: |
-          mkdir postt-release
-          cp -r dist postt-release/
-          cp -r node_modules postt-release/
-          tar czf postt-dist.tar.gz postt-release/
-
-      - name: Compute SHA256
-        id: sha
-        run: echo "sha256=$(sha256sum postt-dist.tar.gz | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+          path: binaries
+          merge-multiple: true
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: postt-dist.tar.gz
+          files: |
+            binaries/postt-macos-arm64
+            binaries/postt-macos-x64
+            binaries/postt-linux-x64
 
-      - name: Update Homebrew tap
-        env:
-          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          SHA256="${{ steps.sha.outputs.sha256 }}"
-
-          git clone "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/nshreve/homebrew-postt.git" tap
-          cd tap
-
-          cat > Formula/postt.rb <<FORMULA
-          class Postt < Formula
-            desc "A delightful CLI for creating and publishing blogs"
-            homepage "https://github.com/nshreve/postt"
-            url "https://github.com/nshreve/postt/releases/download/v${VERSION}/postt-dist.tar.gz"
-            sha256 "${SHA256}"
-            version "${VERSION}"
-            license "MIT"
-
-            depends_on "node"
-
-            def install
-              libexec.install "dist"
-              libexec.install "node_modules"
-              (bin/"postt").write <<~EOS
-                #!/bin/bash
-                exec "#{Formula["node"].opt_bin}/node" "#{libexec}/dist/index.js" "\$@"
-              EOS
-              chmod 0755, bin/"postt"
-            end
-
-            test do
-              assert_match version.to_s, shell_output("#{bin}/postt --version")
-            end
-          end
-          FORMULA
-
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git config user.name "github-actions[bot]"
-          git add Formula/postt.rb
-          git commit -m "postt ${VERSION}"
-          git push

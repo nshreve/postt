@@ -1,23 +1,12 @@
 import React from 'react';
 import { Box, Text } from 'ink';
-import cfonts from 'cfonts';
+
+const LOGO = "\n\n \u001b[37m██████\u001b[39m\u001b[38;2;255;92;0m╗ \u001b[39m  \u001b[37m██████\u001b[39m\u001b[38;2;255;92;0m╗ \u001b[39m \u001b[37m███████\u001b[39m\u001b[38;2;255;92;0m╗\u001b[39m \u001b[37m████████\u001b[39m\u001b[38;2;255;92;0m╗\u001b[39m \u001b[37m████████\u001b[39m\u001b[38;2;255;92;0m╗\u001b[39m\n \u001b[37m██\u001b[39m\u001b[38;2;255;92;0m╔══\u001b[39m\u001b[37m██\u001b[39m\u001b[38;2;255;92;0m╗\u001b[39m \u001b[37m██\u001b[39m\u001b[38;2;255;92;0m╔═══\u001b[39m\u001b[37m██\u001b[39m\u001b[38;2;255;92;0m╗\u001b[39m \u001b[37m██\u001b[39m\u001b[38;2;255;92;0m╔════╝\u001b[39m \u001b[38;2;255;92;0m╚══\u001b[39m\u001b[37m██\u001b[39m\u001b[38;2;255;92;0m╔══╝\u001b[39m \u001b[38;2;255;92;0m╚══\u001b[39m\u001b[37m██\u001b[39m\u001b[38;2;255;92;0m╔══╝\u001b[39m\n \u001b[37m██████\u001b[39m\u001b[38;2;255;92;0m╔╝\u001b[39m \u001b[37m██\u001b[39m\u001b[38;2;255;92;0m║\u001b[39m\u001b[37m   ██\u001b[39m\u001b[38;2;255;92;0m║\u001b[39m \u001b[37m███████\u001b[39m\u001b[38;2;255;92;0m╗\u001b[39m \u001b[37m   ██\u001b[39m\u001b[38;2;255;92;0m║   \u001b[39m \u001b[37m   ██\u001b[39m\u001b[38;2;255;92;0m║   \u001b[39m\n \u001b[37m██\u001b[39m\u001b[38;2;255;92;0m╔═══╝ \u001b[39m \u001b[37m██\u001b[39m\u001b[38;2;255;92;0m║\u001b[39m\u001b[37m   ██\u001b[39m\u001b[38;2;255;92;0m║\u001b[39m \u001b[38;2;255;92;0m╚════\u001b[39m\u001b[37m██\u001b[39m\u001b[38;2;255;92;0m║\u001b[39m \u001b[37m   ██\u001b[39m\u001b[38;2;255;92;0m║   \u001b[39m \u001b[37m   ██\u001b[39m\u001b[38;2;255;92;0m║   \u001b[39m\n \u001b[37m██\u001b[39m\u001b[38;2;255;92;0m║     \u001b[39m \u001b[38;2;255;92;0m╚\u001b[39m\u001b[37m██████\u001b[39m\u001b[38;2;255;92;0m╔╝\u001b[39m \u001b[37m███████\u001b[39m\u001b[38;2;255;92;0m║\u001b[39m \u001b[37m   ██\u001b[39m\u001b[38;2;255;92;0m║   \u001b[39m \u001b[37m   ██\u001b[39m\u001b[38;2;255;92;0m║   \u001b[39m\n \u001b[38;2;255;92;0m╚═╝     \u001b[39m \u001b[38;2;255;92;0m ╚═════╝ \u001b[39m \u001b[38;2;255;92;0m╚══════╝\u001b[39m \u001b[38;2;255;92;0m   ╚═╝   \u001b[39m \u001b[38;2;255;92;0m   ╚═╝   \u001b[39m\n\n";
 
 export function Welcome() {
-  const rendered = cfonts.render("POSTT", {
-    font: "block",
-    colors: ["white", "#FF5C00"],
-    background: "transparent",
-    space: false,
-    maxLength: "0",
-    gradient: false,
-    independentGradient: false,
-    transitionGradient: false,
-    env: "node",
-  });
-
   return (
     <Box flexDirection="column" paddingX={2} paddingY={1}>
-      <Text>{rendered && rendered.string}</Text>
+      <Text>{LOGO}</Text>
       <Box paddingX={1}>
         <Text color="gray">Lightning fast blogging from your terminal.</Text>
       </Box>

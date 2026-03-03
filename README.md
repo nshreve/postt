@@ -5,7 +5,7 @@ A delightful CLI for creating and publishing blogs straight from your terminal.
 ## Installation
 
 ```bash
-npm install -g postt
+curl -fsSL https://raw.githubusercontent.com/nshreve/postt/main/install.sh | sh
 ```
 
 ## Quick Start
