@@ -5,6 +5,8 @@ import { deployToCloudflarePages, deleteBlogContent } from '../lib/deploy.js';
 
 const blogs = new Hono<{ Bindings: Env; Variables: Variables }>();
 
+const RESERVED_SUBDOMAINS = ['www', 'api', 'app', 'admin', 'blog', 'help', 'support', 'mail', 'status', 'dashboard', 'static', 'assets', 'cdn', 'media'];
+
 // Check subdomain availability
 blogs.get('/check-subdomain', async (c) => {
   const subdomain = c.req.query('subdomain');
@@ -17,8 +19,7 @@ blogs.get('/check-subdomain', async (c) => {
     return c.json({ available: false, reason: 'Invalid subdomain format' });
   }
 
-  const reserved = ['www', 'api', 'app', 'admin', 'blog', 'help', 'support', 'mail'];
-  if (reserved.includes(subdomain)) {
+  if (RESERVED_SUBDOMAINS.includes(subdomain)) {
     return c.json({ available: false, reason: 'Reserved subdomain' });
   }
 
@@ -44,6 +45,10 @@ blogs.post('/', async (c) => {
 
     if (!/^[a-z0-9-]{3,30}$/.test(subdomain)) {
       return c.json({ error: 'Invalid subdomain format' }, 400);
+    }
+
+    if (RESERVED_SUBDOMAINS.includes(subdomain)) {
+      return c.json({ error: 'Subdomain is reserved' }, 400);
     }
 
     const supabase = createSupabaseClient(c.env);
@@ -187,6 +192,9 @@ blogs.patch('/:id', async (c) => {
   if (updates.subdomain && updates.subdomain !== blog.subdomain) {
     if (!/^[a-z0-9-]{3,30}$/.test(updates.subdomain)) {
       return c.json({ error: 'Invalid subdomain format' }, 400);
+    }
+    if (RESERVED_SUBDOMAINS.includes(updates.subdomain)) {
+      return c.json({ error: 'Subdomain is reserved' }, 400);
     }
     const existing = await supabase.getBlogBySubdomain(updates.subdomain);
     if (existing) {

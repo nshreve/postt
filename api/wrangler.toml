@@ -9,7 +9,7 @@ fallthrough = true
 
 [vars]
 ENVIRONMENT = "production"
-APP_URL = "https://postt-api.orangestudio.workers.dev"
+APP_URL = "https://api.postt.io"
 SUPABASE_URL = "https://zylcmdmqubcdavwdgdcv.supabase.co"
 
 # Secrets (set via `wrangler secret put`):

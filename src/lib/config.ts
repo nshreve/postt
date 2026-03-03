@@ -3,7 +3,7 @@ import path from 'path';
 import Conf from 'conf';
 import type { BlogConfig, AuthToken } from '../types/index.js';
 
-export const API_URL = process.env.BLOG_API_URL || 'https://postt-api.orangestudio.workers.dev';
+export const API_URL = process.env.BLOG_API_URL || 'https://api.postt.io';
 
 const POSTS_DIR = 'posts';
 const BLOG_ID_FILE = '.postt';
