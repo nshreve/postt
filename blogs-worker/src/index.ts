@@ -10,7 +10,11 @@ export default {
     // Extract subdomain from hostname (e.g., "myblog" from "myblog.postt.io")
     let subdomain: string;
 
-    if (hostname.endsWith('.postt.io')) {
+    if (hostname === 'www.postt.io') {
+      const landingUrl = new URL(request.url);
+      landingUrl.hostname = 'postt.pages.dev';
+      return fetch(new Request(landingUrl.toString(), request));
+    } else if (hostname.endsWith('.postt.io')) {
       subdomain = hostname.replace('.postt.io', '');
     } else if (hostname === 'localhost' || hostname.includes('workers.dev')) {
       // For testing - use query param or default
